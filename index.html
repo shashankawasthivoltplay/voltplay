@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voltplay Labs — Electronic Chess Reimagined</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0b0b0f;
+      --off-black: #111118;
+      --surface: #16161f;
+      --border: rgba(255,255,255,0.08);
+      --volt: #c6ff00;
+      --volt-dim: rgba(198,255,0,0.12);
+      --volt-glow: rgba(198,255,0,0.25);
+      --white: #f0f0f0;
+      --muted: #8888a0;
+      --font: 'Space Grotesk', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--font);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem 2.5rem;
+      background: rgba(11,11,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 0.5px solid var(--border);
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      color: var(--white);
+      text-decoration: none;
+    }
+    .logo span { color: var(--volt); }
+    nav ul { list-style: none; display: flex; gap: 2rem; }
+    nav ul li a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    nav ul li a:hover { color: var(--white); }
+    .nav-cta {
+      background: var(--volt);
+      color: var(--black) !important;
+      padding: 0.5rem 1.25rem;
+      border-radius: 4px;
+      font-weight: 600 !important;
+    }
+    .nav-cta:hover { opacity: 0.9; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(198,255,0,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Chess board art */
+    .board-art {
+      margin-bottom: 3rem;
+      position: relative;
+    }
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 36px);
+      grid-template-rows: repeat(8, 36px);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      opacity: 0.7;
+    }
+    .sq { width: 36px; height: 36px; }
+    .sq.light { background: #1a1a24; }
+    .sq.dark { background: #0e0e16; }
+    .sq.volt { background: var(--volt-dim); }
+    .sq.volt-bright { background: rgba(198,255,0,0.35); }
+    .piece {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+    .pulse-ring {
+      position: absolute;
+      bottom: -8px; right: -8px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--volt);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.4; }
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      color: var(--volt);
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.8rem, 6vw, 5.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+      max-width: 800px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--volt);
+    }
+    .hero p {
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--volt);
+      color: var(--black);
+      border: none;
+      padding: 0.875rem 2rem;
+      border-radius: 4px;
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent;
+      color: var(--white);
+      border: 0.5px solid rgba(255,255,255,0.3);
+      padding: 0.875rem 2rem;
+      border-radius: 4px;
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .btn-outline:hover { border-color: rgba(255,255,255,0.6); transform: translateY(-1px); }
+
+    /* STATS */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      border-top: 0.5px solid var(--border);
+      border-bottom: 0.5px solid var(--border);
+      padding: 2rem 0;
+    }
+    .stat {
+      flex: 1;
+      max-width: 220px;
+      text-align: center;
+      padding: 1rem 2rem;
+      border-right: 0.5px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-num {
+      font-family: var(--mono);
+      font-size: 2rem;
+      font-weight: 500;
+      color: var(--volt);
+      display: block;
+    }
+    .stat-label {
+      font-size: 0.8125rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    /* SECTION */
+    section { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    h2 {
+      font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+
+    /* FEATURES */
+    #features { border-top: 0.5px solid var(--border); }
+    .features-intro { max-width: 540px; margin-bottom: 4rem; }
+    .features-intro p { color: var(--muted); font-size: 1.0625rem; line-height: 1.75; }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5px;
+      background: var(--border);
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .feature-card {
+      background: var(--surface);
+      padding: 2rem;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .feature-card:hover { background: #1c1c28; }
+    .feature-icon {
+      width: 40px; height: 40px;
+      background: var(--volt-dim);
+      border: 0.5px solid rgba(198,255,0,0.2);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    .feature-card h3 {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      margin-bottom: 0.625rem;
+    }
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .feature-tag {
+      display: inline-block;
+      margin-top: 1rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      color: var(--volt);
+      background: var(--volt-dim);
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+
+    /* PRODUCT */
+    #product {
+      border-top: 0.5px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: center;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+    }
+    .product-visual {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 340px;
+      position: relative;
+    }
+    .board-large {
+      display: grid;
+      grid-template-columns: repeat(8, 40px);
+      grid-template-rows: repeat(8, 40px);
+      gap: 1px;
+      background: rgba(255,255,255,0.04);
+    }
+    .sq2 { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; }
+    .sq2.l { background: #1d1d2a; }
+    .sq2.d { background: #121219; }
+    .sq2.v { background: rgba(198,255,0,0.18); }
+    .led-bar {
+      position: absolute;
+      bottom: 1rem; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 6px;
+    }
+    .led { width: 8px; height: 8px; border-radius: 50%; }
+    .led.on { background: var(--volt); animation: blink 1.5s ease-in-out infinite; }
+    .led.off { background: #333; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .product-copy .section-label { margin-bottom: 0.75rem; }
+    .product-copy h2 { margin-bottom: 1rem; }
+    .product-copy p { color: var(--muted); font-size: 1rem; line-height: 1.75; margin-bottom: 2rem; }
+    .spec-list { list-style: none; display: flex; flex-direction: column; gap: 0.625rem; }
+    .spec-list li {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 0.875rem; color: var(--muted);
+    }
+    .spec-list li::before {
+      content: '';
+      display: block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--volt);
+      flex-shrink: 0;
+    }
+
+    /* HOW IT WORKS */
+    #how {
+      border-top: 0.5px solid var(--border);
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .how-header { max-width: 480px; margin-bottom: 4rem; }
+    .how-header p { color: var(--muted); font-size: 1rem; line-height: 1.75; margin-top: 0.75rem; }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2rem;
+      counter-reset: steps;
+    }
+    .step { counter-increment: steps; }
+    .step-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--volt);
+      margin-bottom: 1rem;
+    }
+    .step-num::before { content: counter(steps, decimal-leading-zero) " —"; }
+    .step h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .step p { font-size: 0.875rem; color: var(--muted); line-height: 1.7; }
+
+    /* CTA */
+    #cta {
+      border-top: 0.5px solid var(--border);
+      text-align: center;
+      padding: 6rem 2rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    #cta h2 { margin-bottom: 1rem; }
+    #cta p { color: var(--muted); font-size: 1.0625rem; margin-bottom: 2.5rem; line-height: 1.75; }
+    .email-form {
+      display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;
+    }
+    .email-form input {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      color: var(--white);
+      padding: 0.875rem 1.25rem;
+      border-radius: 4px;
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      width: 280px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .email-form input::placeholder { color: var(--muted); }
+    .email-form input:focus { border-color: rgba(198,255,0,0.5); }
+
+    /* FOOTER */
+    footer {
+      border-top: 0.5px solid var(--border);
+      padding: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    footer p { font-size: 0.8125rem; color: var(--muted); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { font-size: 0.8125rem; color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--white); }
+
+    @media (max-width: 768px) {
+      nav ul { display: none; }
+      nav { padding: 1rem 1.5rem; }
+      .stats { flex-wrap: wrap; }
+      .stat { border-right: none; border-bottom: 0.5px solid var(--border); min-width: 150px; }
+      #product { grid-template-columns: 1fr; gap: 2.5rem; padding: 4rem 1.5rem; }
+      .board-large { grid-template-columns: repeat(8, 32px); grid-template-rows: repeat(8, 32px); }
+      .sq2 { width: 32px; height: 32px; font-size: 1.1rem; }
+      section { padding: 4rem 1.5rem; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="logo">Volt<span>play</span> Labs</a>
+    <ul>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#product">The Board</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#cta" class="nav-cta">Get early access</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="board-art">
+      <div class="board-grid" id="miniboard"></div>
+      <div class="pulse-ring"></div>
+    </div>
+    <p class="eyebrow">Voltplay Labs</p>
+    <h1>Chess, <em>electrified.</em></h1>
+    <p>The world's most intelligent electronic chess board. Auto-move pieces. Real-time analysis. Play anyone, anywhere — with a board that thinks alongside you.</p>
+    <div class="hero-actions">
+      <a href="#cta" class="btn-primary">Join the waitlist</a>
+      <a href="#product" class="btn-outline">See the board →</a>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><span class="stat-num">32</span><div class="stat-label">motorized piece slots</div></div>
+    <div class="stat"><span class="stat-num">&lt;20ms</span><div class="stat-label">move latency</div></div>
+    <div class="stat"><span class="stat-num">3500+</span><div class="stat-label">ELO analysis engine</div></div>
+    <div class="stat"><span class="stat-num">∞</span><div class="stat-label">online opponents</div></div>
+  </div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="features-intro">
+      <p class="section-label">Why Voltplay</p>
+      <h2>A board that moves <em style="font-style:normal;color:var(--volt)">with</em> you</h2>
+      <p>We combined precision robotics, AI chess engines, and seamless connectivity so you never have to choose between the warmth of a physical board and the power of digital play.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">♟</div>
+        <h3>Auto-move pieces</h3>
+        <p>Opponent makes a move online? The board physically slides the piece to the correct square using hidden magnetic actuators.</p>
+        <span class="feature-tag">Robotics</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Real-time analysis</h3>
+        <p>LED ring indicators highlight best moves, blunders, and tactical threats — right on the board surface, no screen required.</p>
+        <span class="feature-tag">AI Engine</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>Play anyone, anywhere</h3>
+        <p>Native integration with Chess.com, Lichess, and our own matchmaking. Rated games, tournaments, and puzzles — all reflected physically.</p>
+        <span class="feature-tag">Connectivity</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔋</div>
+        <h3>8-hour battery</h3>
+        <p>Wireless charging base keeps the board ready. Take it to the park, a café, or a tournament without hunting for an outlet.</p>
+        <span class="feature-tag">Hardware</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Companion app</h3>
+        <p>Game history, coaching insights, and board firmware updates all through the Voltplay mobile app on iOS and Android.</p>
+        <span class="feature-tag">Software</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏆</div>
+        <h3>Tournament-grade pieces</h3>
+        <p>Weighted Staunton pieces with RFID chips for reliable detection. Precision-milled walnut and maple board surface.</p>
+        <span class="feature-tag">Craftsmanship</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT -->
+  <div id="product">
+    <div class="product-visual">
+      <div>
+        <div class="board-large" id="bigboard"></div>
+        <div class="led-bar">
+          <div class="led on"></div>
+          <div class="led off"></div>
+          <div class="led on" style="animation-delay:0.5s"></div>
+          <div class="led off"></div>
+          <div class="led on" style="animation-delay:1s"></div>
+        </div>
+      </div>
+    </div>
+    <div class="product-copy">
+      <p class="section-label">The board</p>
+      <h2>Precision hardware, invisible technology</h2>
+      <p>Every component in the Voltplay board is engineered for the serious player — from the XY actuator grid to the ceramic-coated neodymium magnets beneath each square.</p>
+      <ul class="spec-list">
+        <li>Dual-layer XY magnetic actuator grid</li>
+        <li>64 RGB LED indicators per square</li>
+        <li>RFID piece identification — no setup lag</li>
+        <li>Wi-Fi 6 + Bluetooth 5.2</li>
+        <li>USB-C + wireless Qi charging</li>
+        <li>Walnut / maple surface, aluminum chassis</li>
+        <li>Compatible with standard Staunton pieces</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div id="how">
+    <div class="how-header">
+      <p class="section-label">How it works</p>
+      <h2>From online move to physical piece — in milliseconds</h2>
+      <p>The Voltplay board bridges the digital and physical through a tight hardware-software loop that most players never even think about.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num"></div>
+        <h3>Opponent moves online</h3>
+        <p>A move is played on Chess.com, Lichess, or against our AI. The move is transmitted to the board via Wi-Fi in under 20ms.</p>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <h3>Board calculates path</h3>
+        <p>The onboard processor plans the safest XY actuator path to move the piece without disturbing adjacent squares.</p>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <h3>Magnetic actuator fires</h3>
+        <p>The hidden actuator slides the piece to the destination square with a satisfying magnetic click. Captured pieces move to the side pocket automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-num"></div>
+        <h3>LEDs confirm & coach</h3>
+        <p>The destination square illuminates. If coaching mode is on, the board highlights the engine's preferred reply and any tactical alerts.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <section id="cta">
+    <p class="section-label">Early access</p>
+    <h2>Be first to play</h2>
+    <p>We're launching a limited first batch. Join the waitlist to get early-bird pricing and be part of shaping the product before it ships.</p>
+    <div class="email-form">
+      <input type="email" placeholder="your@email.com" />
+      <a href="#" class="btn-primary" onclick="this.previousElementSibling.value && (this.textContent='On the list ✓')">Reserve my spot</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 Voltplay Labs. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+    </div>
+  </footer>
+
+  <script>
+    // Mini hero board
+    const mb = document.getElementById('miniboard');
+    const voltSquares = [10, 17, 18, 27, 36, 45, 46, 53];
+    for (let i = 0; i < 64; i++) {
+      const sq = document.createElement('div');
+      const row = Math.floor(i / 8), col = i % 8;
+      const isLight = (row + col) % 2 === 0;
+      sq.className = 'sq ' + (voltSquares.includes(i) ? (i === 27 || i === 36 ? 'volt-bright' : 'volt') : isLight ? 'light' : 'dark');
+      mb.appendChild(sq);
+    }
+
+    // Big board with pieces
+    const bb = document.getElementById('bigboard');
+    const pieces = {
+      0:'♜',1:'♞',2:'♝',3:'♛',4:'♚',5:'♝',6:'♞',7:'♜',
+      8:'♟',9:'♟',10:'♟',11:'♟',12:'♟',13:'♟',14:'♟',15:'♟',
+      48:'♙',49:'♙',50:'♙',51:'♙',52:'♙',53:'♙',54:'♙',55:'♙',
+      56:'♖',57:'♘',58:'♗',59:'♕',60:'♔',61:'♗',62:'♘',63:'♖'
+    };
+    const voltBig = [26, 27, 35, 36];
+    for (let i = 0; i < 64; i++) {
+      const sq = document.createElement('div');
+      const row = Math.floor(i / 8), col = i % 8;
+      const isLight = (row + col) % 2 === 0;
+      sq.className = 'sq2 ' + (voltBig.includes(i) ? 'v' : isLight ? 'l' : 'd');
+      if (pieces[i]) sq.textContent = pieces[i];
+      bb.appendChild(sq);
+    }
+  </script>
+</body>
+</html>
